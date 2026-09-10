@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Plumi 운영툴</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root{--paper:#F7F5EE;--ink:#1F1A00;--ink-2:#4C4630;--ink-3:#8A8060;--line:#DDD8C6;--panel:#FFFFFF;--code:#F3F0E4;
+  --yellow:#FFD11A;--pink:#FF2E7E;--sky:#19C3FF;--green:#1E9A6A;--red:#D9483B;--orange:#FF9F1C}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);font-family:"Noto Sans KR",system-ui,sans-serif;font-size:13.5px;line-height:1.5}
+.mono{font-family:"IBM Plex Mono",Menlo,monospace}
+header{display:flex;align-items:center;gap:14px;padding:12px 18px;background:var(--ink);color:#fff;position:sticky;top:0;z-index:5}
+header .logo{font-weight:800;font-size:18px;background:var(--yellow);color:var(--ink);padding:2px 10px;transform:rotate(-2deg)}
+header input{font:inherit;padding:6px 8px;border:1px solid #666;border-radius:4px;background:#2A2410;color:#fff;min-width:220px}
+header input.key{font-family:"IBM Plex Mono",monospace;font-size:12px}
+button{font:inherit;cursor:pointer;border:2px solid var(--ink);background:#fff;padding:6px 12px;font-weight:700;border-radius:4px}
+button.primary{background:var(--pink);color:#fff;border-color:var(--ink)}
+button.ghost{background:transparent;color:#fff;border-color:#888}
+button:disabled{opacity:.5;cursor:default}
+#status{margin-left:auto;font-size:12px;color:#ccc}
+.wrap{display:grid;grid-template-columns:1fr 480px;gap:0;min-height:calc(100vh - 56px)}
+@media (max-width:1100px){.wrap{grid-template-columns:1fr}}
+main{padding:16px 18px;overflow:auto}
+aside{border-left:2px solid var(--ink);background:var(--panel);padding:16px;overflow:auto;position:sticky;top:56px;height:calc(100vh - 56px)}
+@media (max-width:1100px){aside{position:static;height:auto;border-left:0;border-top:2px solid var(--ink)}}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:14px}
+.tile{background:var(--panel);border:2px solid var(--ink);padding:10px 12px;box-shadow:3px 3px 0 var(--ink)}
+.tile b{display:block;font-size:22px;font-family:"IBM Plex Mono",monospace;font-weight:600}
+.tile span{font-size:11.5px;color:var(--ink-3);letter-spacing:.04em}
+.filters{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0 12px}
+.filters select,.filters input{font:inherit;padding:5px 8px;border:1.5px solid var(--ink);border-radius:4px;background:#fff}
+.filters .count{color:var(--ink-3);margin-left:auto}
+table{border-collapse:collapse;width:100%;background:var(--panel);border:2px solid var(--ink);font-size:12.5px}
+th,td{padding:6px 8px;border-bottom:1px solid var(--line);text-align:left;vertical-align:middle;white-space:nowrap}
+th{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-3);background:var(--code);position:sticky;top:0;cursor:pointer;user-select:none}
+th.sorted{color:var(--ink)}
+td.sum{white-space:normal;max-width:360px;color:var(--ink-2)}
+tr.row{cursor:pointer}
+tr.row:hover{background:#FFF8D6}
+tr.row.sel{background:#FFE9B3}
+.num{font-family:"IBM Plex Mono",monospace;font-variant-numeric:tabular-nums;text-align:right}
+.tag{display:inline-block;font-size:11px;padding:0 6px;border:1.5px solid var(--ink);border-radius:3px;font-family:"IBM Plex Mono",monospace}
+.tag.live{background:#E1F5EC;border-color:var(--green)} .tag.draft{background:#FFF3D6;border-color:var(--orange)} .tag.retired{background:#FBE6E3;border-color:var(--red)}
+.tag.bundled{background:#EEE} .tag.server{background:#E2F5FF;border-color:var(--sky)}
+.bar{display:inline-block;width:70px;height:9px;background:#EEE9D6;border:1px solid var(--ink);vertical-align:middle;margin-right:6px;position:relative}
+.bar i{position:absolute;left:0;top:0;bottom:0;background:var(--pink)}
+.warn{color:var(--red);font-weight:700}
+.hint{color:var(--ink-3);font-size:11.5px}
+aside h2{margin:0 0 10px;font-size:16px}
+aside .meta{display:grid;grid-template-columns:110px 1fr;gap:4px 10px;font-size:12.5px;margin-bottom:12px}
+aside .meta b{color:var(--ink-3);font-weight:500}
+aside label{display:block;font-size:12px;color:var(--ink-3);margin:10px 0 3px}
+aside select,aside input[type=text]{font:inherit;padding:5px 8px;border:1.5px solid var(--ink);border-radius:4px;background:#fff;width:100%}
+textarea{width:100%;min-height:360px;font-family:"IBM Plex Mono",monospace;font-size:12px;line-height:1.45;border:1.5px solid var(--ink);border-radius:4px;padding:8px;background:var(--code);resize:vertical}
+textarea.bad{border-color:var(--red);background:#FFF1EF}
+.actions{display:flex;gap:8px;margin-top:10px;flex-wrap:wrap}
+.preview{border:1.5px dashed var(--line);padding:10px;margin-top:10px;font-size:12.5px;background:#FFFDF6}
+.preview .q{font-weight:700;white-space:pre-wrap}
+.preview ol{margin:6px 0 0 18px;padding:0}
+.preview li.ans{color:var(--green);font-weight:700}
+.preview li.trap{color:var(--red)}
+.stats-mini{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:10px}
+.stats-mini div{background:var(--code);padding:6px 8px;border:1px solid var(--line)}
+.stats-mini b{display:block;font-family:"IBM Plex Mono",monospace;font-size:15px}
+.stats-mini span{font-size:11px;color:var(--ink-3)}
+#toast{position:fixed;left:50%;bottom:22px;transform:translateX(-50%);background:var(--ink);color:var(--yellow);padding:8px 16px;border:2px solid var(--yellow);font-weight:700;display:none;z-index:9}
+.empty{padding:40px;text-align:center;color:var(--ink-3)}
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">PLUMI OPS</span>
+  <input id="api" class="key" placeholder="API URL" title="Cloud Function URL">
+  <input id="key" class="key" type="password" placeholder="운영자 키 (x-admin-key)" title="firebase/functions/.env 의 SEED_KEY">
+  <button id="connect" class="primary">연결</button>
+  <button id="rebuild" class="ghost" title="팩·카탈로그만 다시 빌드">배포 반영</button>
+  <span id="status">연결 안 됨</span>
+</header>
+<div class="wrap">
+<main>
+  <div class="tiles" id="tiles"></div>
+  <div class="filters">
+    <select id="f-type"><option value="">모든 유형</option></select>
+    <select id="f-status"><option value="">모든 상태</option><option value="live">live</option><option value="draft">draft</option><option value="retired">retired</option></select>
+    <select id="f-dist"><option value="">모든 배포</option><option value="bundled">앱 번들</option><option value="server">서버 팩</option></select>
+    <select id="f-lang"><option value="ko">요약 ko</option><option value="en">요약 en</option></select>
+    <input id="f-q" placeholder="id · 내용 검색" style="min-width:220px">
+    <label><input type="checkbox" id="f-flag"> 주의만 (이의 · 밴드 불일치 · 낮은 정답률)</label>
+    <button id="new">+ 새 문제</button>
+    <span class="count" id="count"></span>
+  </div>
+  <div style="overflow:auto;max-height:calc(100vh - 260px)">
+  <table id="tbl">
+    <thead><tr>
+      <th data-k="id">ID</th><th data-k="type">유형</th><th data-k="band" class="num">밴드</th><th data-k="status">상태</th><th data-k="bundled">배포</th>
+      <th data-k="summary">내용</th><th data-k="acc" class="num">정답률</th><th data-k="n" class="num">풀이</th><th data-k="real" class="num">실측</th><th data-k="time" class="num">평균초</th>
+      <th data-k="disp" class="num">이의</th><th data-k="fb" class="num">쉬움/어려움</th><th data-k="sug" class="num">제안밴드</th><th data-k="version" class="num">v</th>
+    </tr></thead>
+    <tbody id="rows"><tr><td colspan="14" class="empty">운영자 키를 넣고 연결하세요.</td></tr></tbody>
+  </table>
+  </div>
+</main>
+<aside id="editor">
+  <h2>문제 편집</h2>
+  <div class="hint">목록에서 행을 누르거나 "+ 새 문제"를 누르세요.</div>
+</aside>
+</div>
+<div id="toast"></div>
+
+<script>
+(function () {
+  const $ = (s) => document.querySelector(s);
+  const DEFAULT_API = "https://asia-northeast3-plumi-e88c4.cloudfunctions.net/api";
+  const TYPES = ["symbol", "pattern", "picture", "clock", "matchstick", "word", "probability", "brain", "debate"];
+  const state = { rows: [], sort: { k: "id", dir: 1 }, sel: null, summary: null };
+
+  $("#api").value = localStorage.getItem("plumi_api") || DEFAULT_API;
+  $("#key").value = localStorage.getItem("plumi_key") || "";
+  for (const t of TYPES) { const o = document.createElement("option"); o.value = t; o.textContent = t; $("#f-type").appendChild(o); }
+
+  function toast(msg, ms = 2200) { const t = $("#toast"); t.textContent = msg; t.style.display = "block"; clearTimeout(t._h); t._h = setTimeout(() => (t.style.display = "none"), ms); }
+  function api() { return $("#api").value.replace(/\/+$/, ""); }
+  async function call(method, path, body) {
+    const r = await fetch(api() + path, { method, headers: { "Content-Type": "application/json", "x-admin-key": $("#key").value }, body: body ? JSON.stringify(body) : undefined });
+    const text = await r.text();
+    let data = {}; try { data = text ? JSON.parse(text) : {}; } catch { data = { error: text }; }
+    if (!r.ok) throw new Error(data.error || ("HTTP " + r.status));
+    return data;
+  }
+  const pct = (v) => (v === undefined || v === null ? "—" : Math.round(v * 100) + "%");
+  const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+
+  // ---- load
+  async function connect() {
+    localStorage.setItem("plumi_api", api());
+    localStorage.setItem("plumi_key", $("#key").value);
+    $("#status").textContent = "불러오는 중…";
+    try {
+      const [sum, list] = await Promise.all([call("GET", "/admin/summary"), call("GET", "/admin/problems?lang=" + $("#f-lang").value)]);
+      state.summary = sum; state.rows = list.rows;
+      renderTiles(); renderRows();
+      $("#status").textContent = "연결됨 · " + new Date().toLocaleTimeString();
+    } catch (e) { $("#status").textContent = "실패: " + e.message; toast("연결 실패: " + e.message, 4000); }
+  }
+  function renderTiles() {
+    const s = state.summary; if (!s) return;
+    const c = s.counts;
+    const flagged = state.rows.filter(isFlagged).length;
+    $("#tiles").innerHTML = [
+      [c.total, "전체 문제"], [c.live, "live"], [c.draft + " / " + c.retired, "draft / retired"], [c.bundled + " / " + c.server, "번들 / 서버"],
+      [(s.catalog.ko ? s.catalog.ko.packs : 0) + " / " + (s.catalog.en ? s.catalog.en.packs : 0), "팩 ko / en"],
+      ["v" + (s.catalog.ko ? s.catalog.ko.version : 0) + " · v" + (s.catalog.en ? s.catalog.en.version : 0), "카탈로그 버전"],
+      [s.real_results, "실측 풀이 수"], [s.users, "익명 유저"], [flagged, "주의 문제"],
+    ].map(([v, l]) => `<div class="tile"><b>${esc(v)}</b><span>${esc(l)}</span></div>`).join("");
+  }
+  function isFlagged(r) {
+    const st = r.stats || {};
+    return (st.disputes || 0) >= 3 || (r.band_suggest && Math.abs(r.band_suggest - r.band) >= 3) || (st.accuracy !== undefined && st.n >= 30 && st.accuracy < 0.1);
+  }
+  function sortVal(r, k) {
+    const st = r.stats || {};
+    switch (k) {
+      case "acc": return st.accuracy ?? -1; case "n": return st.n || 0; case "real": return r.real_n || 0; case "time": return st.avg_time || 0;
+      case "disp": return st.disputes || 0; case "fb": return (st.feedback?.easy || 0) + (st.feedback?.hard || 0); case "sug": return r.band_suggest || 0;
+      case "bundled": return r.bundled ? 0 : 1; default: return r[k];
+    }
+  }
+  function filtered() {
+    const t = $("#f-type").value, s = $("#f-status").value, d = $("#f-dist").value, q = $("#f-q").value.trim().toLowerCase(), fl = $("#f-flag").checked;
+    return state.rows.filter((r) => (!t || r.type === t) && (!s || r.status === s) && (!d || (d === "bundled") === r.bundled) && (!q || (r.id + " " + r.summary).toLowerCase().includes(q)) && (!fl || isFlagged(r)))
+      .sort((a, b) => { const va = sortVal(a, state.sort.k), vb = sortVal(b, state.sort.k); return (va < vb ? -1 : va > vb ? 1 : 0) * state.sort.dir; });
+  }
+  function renderRows() {
+    const rows = filtered();
+    $("#count").textContent = rows.length + " / " + state.rows.length;
+    document.querySelectorAll("th").forEach((th) => th.classList.toggle("sorted", th.dataset.k === state.sort.k));
+    if (!rows.length) { $("#rows").innerHTML = '<tr><td colspan="14" class="empty">조건에 맞는 문제가 없습니다.</td></tr>'; return; }
+    $("#rows").innerHTML = rows.map((r) => {
+      const st = r.stats || {};
+      const acc = st.accuracy;
+      const sug = r.band_suggest;
+      const sugCls = sug && Math.abs(sug - r.band) >= 3 ? "warn" : "";
+      return `<tr class="row ${state.sel === r.id ? "sel" : ""}" data-id="${esc(r.id)}">
+        <td class="mono">${esc(r.id)}</td><td>${esc(r.type)}</td><td class="num">${r.band}</td>
+        <td><span class="tag ${r.status}">${r.status}</span></td><td><span class="tag ${r.bundled ? "bundled" : "server"}">${r.bundled ? "번들" : "서버"}</span></td>
+        <td class="sum">${esc(r.summary)}</td>
+        <td class="num"><span class="bar"><i style="width:${Math.round((acc || 0) * 100)}%"></i></span>${pct(acc)}</td>
+        <td class="num">${(st.n || 0).toLocaleString()}</td><td class="num">${r.real_n || 0}</td><td class="num">${st.avg_time ? st.avg_time.toFixed(1) : "—"}</td>
+        <td class="num ${(st.disputes || 0) >= 3 ? "warn" : ""}">${st.disputes || 0}</td><td class="num">${st.feedback ? st.feedback.easy + "/" + st.feedback.hard : "0/0"}</td>
+        <td class="num ${sugCls}">${sug || "—"}</td><td class="num">${r.version}</td></tr>`;
+    }).join("");
+    document.querySelectorAll("tr.row").forEach((tr) => tr.addEventListener("click", () => openEditor(tr.dataset.id)));
+  }
+
+  // ---- editor
+  function nextId() {
+    const d = new Date(); const y = d.getFullYear(); const jan = new Date(y, 0, 1); const week = Math.ceil(((d - jan) / 86400000 + jan.getDay() + 1) / 7);
+    const prefix = `s-${y}w${String(week).padStart(2, "0")}-`;
+    let n = 1; for (const r of state.rows) if (r.id.startsWith(prefix)) n = Math.max(n, Number(r.id.slice(prefix.length)) + 1 || n);
+    return prefix + String(n).padStart(4, "0");
+  }
+  const TEMPLATE = (id) => ({
+    id, type: "word", band: 5, input: "choice", answer: 0, trap: 1,
+    lines: [{ ko: "문제 문장 (줄바꿈은 \\n)", en: "Problem text" }, { ko: "질문?", en: "Question?" }],
+    choices: [{ num: 1 }, { num: 2 }, { text: { ko: "글자 보기", en: "Text choice" } }, { money: 110 }],
+    explain: { ko: "해설", en: "Solution" },
+    locales: ["ko", "en"],
+    stats: { accuracy: 0.4, avg_time: 20, countries: { KR: 0.42, JP: 0.4, US: 0.36 }, n: 0 },
+  });
+  function editorHtml(row, body, meta, stats, isNew) {
+    const st = stats || {};
+    return `
+      <h2>${isNew ? "새 문제" : esc(row.id)}</h2>
+      ${isNew ? "" : `<div class="meta">
+        <b>버전</b><span>v${meta.version || 1} · ${meta.source || ""} · ${meta.updated_at ? new Date(meta.updated_at).toLocaleString() : ""}</span>
+        <b>번들 포함</b><span>${meta.bundled ? "예 (앱 " + (meta.bundled_in || "") + ")" : "아니오 · 서버 팩으로 배포"}</span>
+      </div>
+      <div class="stats-mini">
+        <div><b>${pct(st.accuracy)}</b><span>정답률</span></div><div><b>${(st.n || 0).toLocaleString()}</b><span>풀이 (실측 ${row ? row.real_n : 0})</span></div>
+        <div><b>${st.avg_time ? st.avg_time.toFixed(1) : "—"}</b><span>평균 초</span></div><div><b>${st.disputes || 0}</b><span>이의</span></div>
+      </div>`}
+      <label>상태</label>
+      <select id="e-status"><option value="live">live · 피드에 나감</option><option value="draft">draft · 숨김</option><option value="retired">retired · 회수 (기기에서도 삭제)</option></select>
+      <label>배포 방식</label>
+      <select id="e-dist"><option value="server">서버 팩 · 다음 카탈로그 확인 때 기기로 내려감</option><option value="bundled">앱 번들 · 앱 안에 있는 그대로 (수정해도 기기에 안 감)</option></select>
+      <div class="hint">번들 문제를 고쳐서 기기에 보내려면 "서버 팩"으로 바꾸세요. 기기는 버전이 높은 쪽을 씁니다.</div>
+      <label>본문 (JSON)</label>
+      <textarea id="e-body" spellcheck="false"></textarea>
+      <div class="hint" id="e-err"></div>
+      <div class="preview" id="e-preview"></div>
+      <div class="actions">
+        <button id="e-save" class="primary">${isNew ? "만들기" : "저장"}</button>
+        <button id="e-format">정렬</button>
+        ${isNew ? "" : `<button id="e-dup">복제해서 새 문제</button>`}
+        <span class="hint" style="align-self:center">저장하면 버전이 오르고 팩·카탈로그가 재빌드됩니다.</span>
+      </div>`;
+  }
+  function renderPreview() {
+    const box = $("#e-preview"), err = $("#e-err"), ta = $("#e-body");
+    let b; try { b = JSON.parse(ta.value); ta.classList.remove("bad"); err.textContent = ""; } catch (e) { ta.classList.add("bad"); err.textContent = "JSON 오류: " + e.message; box.innerHTML = ""; return null; }
+    const lang = $("#f-lang").value;
+    const pick = (v) => (v && typeof v === "object" ? (v[lang] ?? v.en ?? "") : (v ?? ""));
+    const ct = (c) => c.money !== undefined ? (lang === "ko" ? (c.money * 10).toLocaleString() + "원" : "$" + (c.money / 100).toFixed(2)) : c.text ? pick(c.text) : c.num !== undefined ? c.num + (c.suffix ? pick(c.suffix) : "") : JSON.stringify(c);
+    let html = `<div class="q">${esc((b.lines || []).map(pick).join("\n") || b.expr || (b.params && b.params.eq) || "(본문 없음)")}</div>`;
+    if (Array.isArray(b.choices)) html += "<ol>" + b.choices.map((c, i) => `<li class="${i === b.answer ? "ans" : i === b.trap ? "trap" : ""}">${esc(ct(c))}${i === b.answer ? " ✓" : i === b.trap ? " (함정)" : ""}</li>`).join("") + "</ol>";
+    if (Array.isArray(b.sides)) html += "<ol>" + b.sides.map((s) => `<li>${esc(s.label)} · ${esc(pick(s.desc))}</li>`).join("") + "</ol>";
+    html += `<div class="hint" style="margin-top:6px">해설: ${esc(pick(b.explain || b.official || ""))}</div>`;
+    box.innerHTML = html;
+    return b;
+  }
+  async function openEditor(id) {
+    state.sel = id; renderRows();
+    const row = state.rows.find((r) => r.id === id);
+    $("#editor").innerHTML = '<div class="hint">불러오는 중…</div>';
+    try {
+      const d = await call("GET", "/admin/problems/" + id);
+      $("#editor").innerHTML = editorHtml(row, d.body, d.meta, d.stats, false);
+      $("#e-status").value = d.meta.status || "live";
+      $("#e-dist").value = d.meta.bundled ? "bundled" : "server";
+      $("#e-body").value = JSON.stringify(d.body, null, 2);
+      wireEditor(id, false);
+    } catch (e) { $("#editor").innerHTML = `<div class="warn">${esc(e.message)}</div>`; }
+  }
+  function openNew(base) {
+    state.sel = null; renderRows();
+    const id = nextId();
+    const body = base ? { ...base, id, stats: { accuracy: 0.4, avg_time: 20, countries: {}, n: 0 } } : TEMPLATE(id);
+    $("#editor").innerHTML = editorHtml(null, body, {}, null, true);
+    $("#e-status").value = "draft";
+    $("#e-dist").value = "server";
+    $("#e-body").value = JSON.stringify(body, null, 2);
+    wireEditor(id, true);
+  }
+  function wireEditor(id, isNew) {
+    const ta = $("#e-body");
+    ta.addEventListener("input", renderPreview);
+    $("#f-lang").addEventListener("change", renderPreview);
+    renderPreview();
+    $("#e-format").addEventListener("click", () => { const b = renderPreview(); if (b) ta.value = JSON.stringify(b, null, 2); });
+    const dup = $("#e-dup"); if (dup) dup.addEventListener("click", () => { const b = renderPreview(); if (b) openNew(b); });
+    $("#e-save").addEventListener("click", async () => {
+      const b = renderPreview(); if (!b) return;
+      const btn = $("#e-save"); btn.disabled = true; btn.textContent = "저장 중…";
+      try {
+        const bundledBefore = state.rows.find((r) => r.id === b.id)?.bundled;
+        let dist = $("#e-dist").value;
+        if (!isNew && bundledBefore && dist === "bundled") {
+          const orig = await call("GET", "/admin/problems/" + b.id);
+          if (JSON.stringify(orig.body) !== JSON.stringify(b) && confirm("번들 문제를 고쳤습니다. 기기에 새 버전을 보내려면 서버 팩으로 배포해야 합니다. 서버 팩으로 바꿀까요?")) dist = "server";
+        }
+        const r = await call(isNew ? "POST" : "PUT", isNew ? "/admin/problems" : "/admin/problems/" + b.id, { body: b, status: $("#e-status").value, distribution: dist });
+        toast(`저장됨 · v${r.meta.version} · 카탈로그 ko v${r.catalog.ko} / en v${r.catalog.en}`);
+        await connect();
+        openEditor(b.id);
+      } catch (e) { toast("저장 실패: " + e.message, 5000); btn.disabled = false; btn.textContent = isNew ? "만들기" : "저장"; }
+    });
+  }
+
+  // ---- wiring
+  $("#connect").addEventListener("click", connect);
+  $("#key").addEventListener("keydown", (e) => { if (e.key === "Enter") connect(); });
+  $("#rebuild").addEventListener("click", async () => { try { const r = await call("POST", "/admin/rebuild"); toast(`재빌드 · 팩 ${r.packs.length} · 카탈로그 ko v${r.catalog.ko} / en v${r.catalog.en}`); connect(); } catch (e) { toast("실패: " + e.message, 4000); } });
+  $("#new").addEventListener("click", () => openNew(null));
+  for (const id of ["f-type", "f-status", "f-dist", "f-q", "f-flag"]) $("#" + id).addEventListener("input", renderRows);
+  $("#f-lang").addEventListener("change", connect);
+  document.querySelectorAll("th[data-k]").forEach((th) => th.addEventListener("click", () => { const k = th.dataset.k; state.sort = { k, dir: state.sort.k === k ? -state.sort.dir : 1 }; renderRows(); }));
+  if ($("#key").value) connect();
+}());
+</script>
+</body>
+</html>
